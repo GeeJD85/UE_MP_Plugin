@@ -5,7 +5,7 @@
 
 #include "Components/Button.h"
 #include "MultiplayerSessionsSubsystem.h"
-
+#include "OnlineSessionSettings.h"
 
 
 void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
@@ -108,11 +108,37 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 
 void UMenu::OnFindSessions(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
 {
+	if (MultiplayerSessionsSubsystem == nullptr) return;
+	
+	// ADD THESE TO MENU TO CHOOSE A GAME - this iteration picks the first matching lobby type
+	for (auto Result : SessionResults)
+	{
+		FString SettingsValue;
+		Result.Session.SessionSettings.Get(FName("MatchType"), SettingsValue);
+		if(SettingsValue == MatchType)
+		{
+			MultiplayerSessionsSubsystem->JoinSession(Result);
+			return;
+		}
+	}
 }
 
 void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 {
-	
+	if (IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
+	{
+		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		if(SessionInterface.IsValid())
+		{
+			FString Address;
+			SessionInterface->GetResolvedConnectString(NAME_GameSession, Address);
+
+			if (const TObjectPtr<APlayerController> PlayerController = GetGameInstance()->GetFirstLocalPlayerController())
+			{
+				PlayerController->ClientTravel(Address, TRAVEL_Absolute);
+			}
+		}
+	}
 }
 
 
@@ -134,7 +160,10 @@ void UMenu::HostButtonClicked()
 
 void UMenu::JoinButtonClicked()
 {
-	
+	if (MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->FindSessions(100000); // APPID 480 makes this high, lower for uniqueid
+	}
 }
 
 void UMenu::MenuTearDown()
