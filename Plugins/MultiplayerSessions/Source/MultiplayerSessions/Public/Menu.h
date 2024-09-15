@@ -7,7 +7,7 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Menu.generated.h"
 
-
+class UButton;
 /**
  * 
  */
@@ -18,6 +18,9 @@ class MULTIPLAYERSESSIONS_API UMenu : public UUserWidget
 public:
 	UFUNCTION(BlueprintCallable)
 	void MenuSetup(int32 NumberOfPublicConnections = 4, FString TypeOfMatch = FString(TEXT("FreeForAll")));
+
+	UFUNCTION(BlueprintCallable)
+	void StartSession();
 
 protected:
 	virtual bool Initialize() override;
@@ -34,18 +37,23 @@ protected:
 	void OnDestroySession(bool bWasSuccessful);
 	UFUNCTION()
 	void OnStartSession(bool bWasSuccessful);
-	
+
 private:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UButton> Button_Host;
+	TObjectPtr<UButton> Button_Host;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_Join;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> Button_StartSession;
 
 	UFUNCTION()
 	void HostButtonClicked();
 
 	UFUNCTION()
 	void JoinButtonClicked();
+
+	UFUNCTION()
+	void StartSessionButtonClicked();
 
 	void MenuTearDown();
 

@@ -15,7 +15,7 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
 	
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
-	bIsFocusable = true;
+	SetIsFocusable(true);
 
 	if (const TObjectPtr<UWorld> World = GetWorld())
 	{
@@ -46,6 +46,7 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
 	}
 }
 
+
 bool UMenu::Initialize()
 {
 	if (!Super::Initialize())
@@ -61,6 +62,11 @@ bool UMenu::Initialize()
 	if(Button_Join)
 	{
 		Button_Join->OnClicked.AddDynamic(this, &ThisClass::JoinButtonClicked);
+	}
+
+	if (Button_StartSession)
+	{
+		Button_StartSession->OnClicked.AddDynamic(this, &ThisClass::StartSessionButtonClicked);
 	}
 	
 	return true;
@@ -148,6 +154,60 @@ void UMenu::OnDestroySession(bool bWasSuccessful)
 
 void UMenu::OnStartSession(bool bWasSuccessful)
 {
+	if (!bWasSuccessful)
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Red,
+				FString(TEXT("Failed to start session!"))
+				);
+		}
+		return;
+	}
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Green,
+			FString(TEXT("Session started!"))
+			);
+	}
+}
+
+void UMenu::StartSession()
+{
+	AddToViewport();
+	SetVisibility(ESlateVisibility::Visible);
+	SetIsFocusable(true);
+
+	Button_Host->SetVisibility(ESlateVisibility::Hidden);
+	Button_Join->SetVisibility(ESlateVisibility::Hidden);
+	Button_StartSession->SetVisibility(ESlateVisibility::Visible);
+
+	// TODO: Make this dynamic instead of hogging the controls
+	if (const TObjectPtr<UWorld> World = GetWorld())
+	{
+		if (const TObjectPtr<APlayerController> PlayerController = World->GetFirstPlayerController())
+		{
+			FInputModeUIOnly InputModeData;
+			InputModeData.SetWidgetToFocus(TakeWidget());
+			InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			PlayerController->SetInputMode(InputModeData);
+			PlayerController->SetShowMouseCursor(true);
+		}
+	}
+
+	// Get and store the subsystem, bind the callback
+	if (const TObjectPtr<UGameInstance> GameInstance = GetGameInstance())
+	{
+		MultiplayerSessionsSubsystem = GameInstance->GetSubsystem<UMultiplayerSessionsSubsystem>();
+		MultiplayerSessionsSubsystem->MultiplayerOnStartSessionComplete.AddDynamic(this, &ThisClass::OnStartSession);
+	}
 }
 
 void UMenu::HostButtonClicked()
@@ -163,6 +223,14 @@ void UMenu::JoinButtonClicked()
 	if (MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->FindSessions(100000); // APPID 480 makes this high, lower for uniqueid
+	}
+}
+
+void UMenu::StartSessionButtonClicked()
+{	
+	if (MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->StartSession();
 	}
 }
 
