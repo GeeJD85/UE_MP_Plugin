@@ -3,6 +3,10 @@
 
 #include "Menu.h"
 
+#include "Components/Button.h"
+#include "MultiplayerSessionsSubsystem.h"
+
+
 void UMenu::MenuSetup()
 {
 	AddToViewport();
@@ -23,4 +27,60 @@ void UMenu::MenuSetup()
 		}
 	}
 
+	TObjectPtr<UGameInstance> GameInstance = GetGameInstance();
+	if (GameInstance)
+	{
+		MultiplayerSessionsSubsystem = GameInstance->GetSubsystem<UMultiplayerSessionsSubsystem>();
+	}
+}
+
+bool UMenu::Initialize()
+{
+	if (!Super::Initialize())
+	{
+		return false;
+	}
+
+	if (Button_Host)
+	{
+		Button_Host->OnClicked.AddDynamic(this, &ThisClass::HostButtonClicked);
+	}
+
+	if(Button_Join)
+	{
+		Button_Join->OnClicked.AddDynamic(this, &ThisClass::JoinButtonClicked);
+	}
+	
+	return true;
+}
+
+void UMenu::HostButtonClicked()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString(TEXT("Host Button Clicked"))
+			);
+	}
+
+	if (MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->CreateSession(4, FString("FreeForAll"));
+	}
+}
+
+void UMenu::JoinButtonClicked()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString(TEXT("Join Button Clicked"))
+			);
+	}
 }

@@ -16,5 +16,22 @@ class MULTIPLAYERSESSIONS_API UMenu : public UUserWidget
 public:
 	UFUNCTION(BlueprintCallable)
 	void MenuSetup();
+
+protected:
+	virtual bool Initialize() override;
 	
+private:
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UButton> Button_Host;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> Button_Join;
+
+	UFUNCTION()
+	void HostButtonClicked();
+
+	UFUNCTION()
+	void JoinButtonClicked();
+
+	// The subsystem designed to handle all online session functionality
+	TObjectPtr<class UMultiplayerSessionsSubsystem> MultiplayerSessionsSubsystem;
 };
