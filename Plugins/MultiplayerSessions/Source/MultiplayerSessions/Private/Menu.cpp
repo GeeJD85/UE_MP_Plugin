@@ -16,11 +16,9 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
 	SetVisibility(ESlateVisibility::Visible);
 	bIsFocusable = true;
 
-	TObjectPtr<UWorld> World = GetWorld();
-	if (World)
+	if (const TObjectPtr<UWorld> World = GetWorld())
 	{
-		TObjectPtr<APlayerController> PlayerController = World->GetFirstPlayerController();
-		if (PlayerController)
+		if (const TObjectPtr<APlayerController> PlayerController = World->GetFirstPlayerController())
 		{
 			FInputModeUIOnly InputModeData;
 			InputModeData.SetWidgetToFocus(TakeWidget());
@@ -30,10 +28,14 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
 		}
 	}
 
-	TObjectPtr<UGameInstance> GameInstance = GetGameInstance();
-	if (GameInstance)
+	if (const TObjectPtr<UGameInstance> GameInstance = GetGameInstance())
 	{
 		MultiplayerSessionsSubsystem = GameInstance->GetSubsystem<UMultiplayerSessionsSubsystem>();
+	}
+
+	if(MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->MultiplayerOnCreateSessionComplete.AddDynamic(this, &ThisClass::OnCreateSession);
 	}
 }
 
@@ -64,25 +66,44 @@ void UMenu::NativeDestruct()
 	MenuTearDown();
 }
 
-void UMenu::HostButtonClicked()
+void UMenu::OnCreateSession(bool bWasSuccessful)
 {
-	if (GEngine)
+	if (bWasSuccessful)
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString(TEXT("Host Button Clicked"))
-			);
-	}
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Green,
+				FString(TEXT("Session created successfully!"))
+				);
+		}
 
-	if (MultiplayerSessionsSubsystem)
-	{
-		MultiplayerSessionsSubsystem->CreateSession(NumPublicConnections, MatchType);
 		if(TObjectPtr<UWorld> World = GetWorld())
 		{
 			World->ServerTravel("/Game/ThirdPerson/Maps/Lobby?listen");
 		}
+	}
+	else
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Red,
+				FString(TEXT("Failed to create session!"))
+				);
+		}
+	}
+}
+
+void UMenu::HostButtonClicked()
+{
+	if (MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->CreateSession(NumPublicConnections, MatchType);		
 	}
 }
 
@@ -102,9 +123,9 @@ void UMenu::JoinButtonClicked()
 void UMenu::MenuTearDown()
 {
 	RemoveFromParent();
-	if(TObjectPtr<UWorld> World = GetWorld())
+	if(const TObjectPtr<UWorld> World = GetWorld())
 	{
-		if(TObjectPtr<APlayerController> PlayerController = World->GetFirstPlayerController())
+		if(const TObjectPtr<APlayerController> PlayerController = World->GetFirstPlayerController())
 		{
 			const FInputModeGameOnly InputModeData;
 			PlayerController->SetInputMode(InputModeData);
