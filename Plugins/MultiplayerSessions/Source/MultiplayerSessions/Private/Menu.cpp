@@ -8,10 +8,11 @@
 #include "OnlineSessionSettings.h"
 
 
-void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
+void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch, FString LobbyPath)
 {
 	NumPublicConnections = NumberOfPublicConnections;
 	MatchType = TypeOfMatch;
+	PathToLobby = FString::Printf(TEXT("%s?listen"), *LobbyPath);
 	
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
@@ -95,7 +96,7 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 
 		if(TObjectPtr<UWorld> World = GetWorld())
 		{
-			World->ServerTravel("/Game/ThirdPerson/Maps/Lobby?listen");
+			World->ServerTravel(PathToLobby);
 		}
 	}
 	else
@@ -109,6 +110,7 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 				FString(TEXT("Failed to create session!"))
 				);
 		}
+		Button_Host->SetIsEnabled(true);
 	}
 }
 
@@ -126,6 +128,10 @@ void UMenu::OnFindSessions(const TArray<FOnlineSessionSearchResult>& SessionResu
 			MultiplayerSessionsSubsystem->JoinSession(Result);
 			return;
 		}
+	}
+	if(!bWasSuccessful || SessionResults.Num() == 0)
+	{
+		Button_Join->SetIsEnabled(true);
 	}
 }
 
@@ -145,6 +151,10 @@ void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 			}
 		}
 	}
+	if (Result != EOnJoinSessionCompleteResult::Success)
+	{
+		Button_Join->SetIsEnabled(true);
+	}
 }
 
 
@@ -156,6 +166,7 @@ void UMenu::OnStartSession(bool bWasSuccessful)
 {
 	if (!bWasSuccessful)
 	{
+		Button_StartSession->SetIsEnabled(true);
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(
@@ -179,7 +190,7 @@ void UMenu::OnStartSession(bool bWasSuccessful)
 	}
 }
 
-void UMenu::StartSession()
+void UMenu::LobbySetup()
 {
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
@@ -212,6 +223,7 @@ void UMenu::StartSession()
 
 void UMenu::HostButtonClicked()
 {
+	Button_Host->SetIsEnabled(false);
 	if (MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->CreateSession(NumPublicConnections, MatchType);		
@@ -220,6 +232,7 @@ void UMenu::HostButtonClicked()
 
 void UMenu::JoinButtonClicked()
 {
+	Button_Join->SetIsEnabled(false);
 	if (MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->FindSessions(100000); // APPID 480 makes this high, lower for uniqueid
@@ -227,7 +240,8 @@ void UMenu::JoinButtonClicked()
 }
 
 void UMenu::StartSessionButtonClicked()
-{	
+{
+	Button_StartSession->SetIsEnabled(false);
 	if (MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->StartSession();
